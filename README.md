@@ -73,6 +73,9 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) (proxies `/api` to the .NET API).
 
+**Full local guide (existing PostgreSQL + dashboard):** see [`docs/LOCAL_SETUP.md`](docs/LOCAL_SETUP.md)  
+**Grafana panel mapping:** see [`docs/GRAFANA_PANELS.md`](docs/GRAFANA_PANELS.md)
+
 ### Full stack with Docker
 
 ```bash
@@ -94,6 +97,13 @@ API: `http://localhost:5000` · Categorization: `http://localhost:8000` · Postg
 | `GET` | `/api/analytics/spending-by-category` | Monthly totals per category |
 | `GET` | `/api/analytics/average-monthly-by-category` | Average monthly spend per category |
 | `GET` | `/api/analytics/top-merchants` | Top merchants by total spend |
+| `GET` | `/api/analytics/months` | Available months (dashboard filter) |
+| `GET` | `/api/analytics/spend-by-category?month=` | Category pie (month / all time) |
+| `GET` | `/api/analytics/budget-502030/actual` | 50/30/20 actual spend groups |
+| `GET` | `/api/analytics/earnings-vs-expenditures` | Monthly income vs spend |
+| `GET` | `/api/analytics/category-pivot` | Crosstab for stacked bar charts |
+
+See Swagger for the full analytics surface.
 
 Sample requests: [`docs/api.http`](docs/api.http)
 

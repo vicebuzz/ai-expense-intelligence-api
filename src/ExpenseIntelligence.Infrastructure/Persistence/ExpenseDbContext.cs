@@ -1,6 +1,7 @@
 using ExpenseIntelligence.Domain.Entities;
 using ExpenseIntelligence.Infrastructure.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.Options;
 
 namespace ExpenseIntelligence.Infrastructure.Persistence;
@@ -42,7 +43,11 @@ public class ExpenseDbContext : DbContext
             entity.Property(t => t.Date).HasColumnName("date");
             entity.Property(t => t.Description).HasColumnName("description");
             entity.Property(t => t.Amount).HasColumnName("amount");
-            entity.Property(t => t.IsExpense).HasColumnName("expenditure");
+            entity.Property(t => t.IsExpense)
+                .HasColumnName("expenditure")
+                .HasConversion(new ValueConverter<bool, bool?>(
+                    v => v,
+                    v => v ?? false));
             entity.Property(t => t.Category).HasColumnName("source");
 
             entity.Ignore(t => t.CategorizationSource);

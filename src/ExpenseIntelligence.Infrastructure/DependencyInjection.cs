@@ -4,6 +4,7 @@ using ExpenseIntelligence.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace ExpenseIntelligence.Infrastructure;
 
@@ -13,7 +14,14 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
+        var dbSection = configuration.GetSection(DatabaseOptions.SectionName);
+        var databaseOptions = new DatabaseOptions
+        {
+            UseLegacySchema = ParseBool(dbSection["UseLegacySchema"], defaultValue: true),
+            LegacyTableName = dbSection["LegacyTableName"] ?? "accountbalancemanagement"
+        };
+
+        services.AddSingleton(Options.Create(databaseOptions));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         if (string.IsNullOrWhiteSpace(connectionString))
@@ -24,13 +32,11 @@ public static class DependencyInjection
                 "ConnectionStrings__DefaultConnection.");
         }
 
-        var useLegacy = configuration.GetValue<bool>($"{DatabaseOptions.SectionName}:UseLegacySchema");
-
         services.AddDbContext<ExpenseDbContext>(options =>
         {
             options.UseNpgsql(connectionString, npgsql =>
             {
-                if (!useLegacy)
+                if (!databaseOptions.UseLegacySchema)
                 {
                     npgsql.MigrationsAssembly(typeof(ExpenseDbContext).Assembly.GetName().Name);
                 }
@@ -42,4 +48,9 @@ public static class DependencyInjection
 
         return services;
     }
+
+    private static bool ParseBool(string? value, bool defaultValue) =>
+        string.IsNullOrWhiteSpace(value)
+            ? defaultValue
+            : bool.TryParse(value, out var result) && result;
 }

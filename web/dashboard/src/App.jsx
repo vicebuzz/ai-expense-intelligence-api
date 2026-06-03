@@ -1,131 +1,279 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-import { api } from './api';
+import CategoryPieChart from './components/CategoryPieChart';
+import ComparisonBarChart from './components/ComparisonBarChart';
+import DataTable, { currencyColumn } from './components/DataTable';
+import GaugeDisplay from './components/GaugeDisplay';
+import HorizontalBudgetBars from './components/HorizontalBudgetBars';
+import Panel from './components/Panel';
+import StackedBarChart from './components/StackedBarChart';
+import TimeSeriesChart from './components/TimeSeriesChart';
+import { useDashboard } from './hooks/useDashboard';
+import { formatCurrency, formatMonth } from './utils/format';
+
+function expensesVsEarningsPieData(totals) {
+  if (!totals) return [];
+  return [
+    { category: 'Expenditures', total: totals.totalExpenses },
+    { category: 'Earnings', total: totals.totalEarnings },
+  ].filter((x) => x.total > 0);
+}
+
+function pivotToRows(pivot) {
+  if (!pivot?.rows) return [];
+  return pivot.rows.map((r) => ({ month: r.month, values: r.values }));
+}
+
+function salaryBarData(salaryRows) {
+  return salaryRows.map((r) => ({
+    month: r.month,
+    values: { Salary: Number(r.total) },
+  }));
+}
+
+function categorySeriesFromMonthly(rows) {
+  const byCat = {};
+  rows.forEach((r) => {
+    if (!byCat[r.category]) byCat[r.category] = [];
+    byCat[r.category].push({ x: r.month, y: Number(r.total) });
+  });
+  return Object.entries(byCat).map(([key, data]) => ({
+    key,
+    label: key,
+    data,
+  }));
+}
 
 export default function App() {
-  const [spending, setSpending] = useState([]);
-  const [averages, setAverages] = useState([]);
-  const [merchants, setMerchants] = useState([]);
-  const [error, setError] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState([]);
+
+  const dash = useDashboard(selectedMonth, selectedCategories);
 
   useEffect(() => {
-    Promise.all([
-      api.spendingByCategory(),
-      api.averageMonthly(),
-      api.topMerchants(8),
-    ])
-      .then(([s, a, m]) => {
-        setSpending(s);
-        setAverages(a);
-        setMerchants(m);
-      })
-      .catch((e) => setError(e.message));
-  }, []);
-
-  const chartData = useMemo(() => {
-    const byMonth = {};
-    for (const row of spending) {
-      if (!byMonth[row.month]) byMonth[row.month] = { month: row.month };
-      byMonth[row.month][row.category] = Number(row.total);
+    if (dash.months.length && !selectedMonth) {
+      setSelectedMonth(dash.months[0].value);
     }
-    return Object.values(byMonth).sort((a, b) =>
-      a.month.localeCompare(b.month)
-    );
-  }, [spending]);
+  }, [dash.months, selectedMonth]);
 
-  const totalSpend = useMemo(
-    () => spending.reduce((sum, r) => sum + Number(r.total), 0),
-    [spending]
+  useEffect(() => {
+    if (dash.categories.length && selectedCategories.length === 0) {
+      const defaults = ['Food', 'Groceries', 'Transport', 'Entertainment', 'Bills']
+        .filter((c) => dash.categories.includes(c));
+      setSelectedCategories(
+        defaults.length ? defaults : dash.categories.slice(0, 5)
+      );
+    }
+  }, [dash.categories, selectedCategories.length]);
+
+  const dailySeries = useMemo(
+    () => [
+      {
+        key: 'daily',
+        label: 'Daily spend',
+        data: dash.daily.map((d) => ({
+          x: d.date,
+          y: Number(d.total),
+        })),
+      },
+    ],
+    [dash.daily]
   );
 
-  const topCategory = useMemo(() => {
-    if (!averages.length) return '—';
-    return [...averages].sort(
-      (a, b) => b.averageAmount - a.averageAmount
-    )[0].category;
-  }, [averages]);
+  const totalsPie = useMemo(
+    () => expensesVsEarningsPieData(dash.expensesVsEarnings),
+    [dash.expensesVsEarnings]
+  );
+
+  const toggleCategory = (cat) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
 
   return (
-    <>
-      <h1>Expense Intelligence</h1>
-      <p className="subtitle">
-        Spending analytics powered by ASP.NET Core and PostgreSQL
-      </p>
+    <div className="dashboard">
+      <header className="dashboard-header">
+        <div>
+          <h1>Expense Intelligence</h1>
+          {/* <p className="subtitle">
+            React dashboard mirroring your Grafana panels — data from PostgreSQL
+            via ASP.NET Core
+          </p> */}
+        </div>
+        {dash.health && (
+          <div className="health-badge">
+            <span className="dot" />
+            {dash.health.database} · {dash.health.transactionCount} rows
+          </div>
+        )}
+      </header>
 
-      {error && <div className="error">{error}</div>}
+      {dash.error && <div className="error">{dash.error}</div>}
 
-      <div className="stat-row">
-        <div className="stat">
-          <label>Total spend (period)</label>
-          <strong>£{totalSpend.toFixed(2)}</strong>
+      <div className="filters card">
+        <label>
+          Month
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            disabled={!dash.months.length}
+          >
+            {dash.months.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="category-filter">
+          <span className="filter-label">Categories (time series)</span>
+          <div className="chips">
+            {dash.categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={`chip ${selectedCategories.includes(cat) ? 'chip--on' : ''}`}
+                onClick={() => toggleCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="stat">
-          <label>Highest avg category</label>
-          <strong>{topCategory}</strong>
-        </div>
-        <div className="stat">
-          <label>Data points</label>
-          <strong>{spending.length}</strong>
-        </div>
+        {dash.loading && <span className="loading-pill">Loading…</span>}
       </div>
 
-      <div className="grid">
-        <div className="card" style={{ gridColumn: '1 / -1' }}>
-          <h2>Monthly spend by category</h2>
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2a3548" />
-              <XAxis dataKey="month" stroke="#8b9cb3" />
-              <YAxis stroke="#8b9cb3" />
-              <Tooltip
-                contentStyle={{
-                  background: '#1a2332',
-                  border: '1px solid #2a3548',
-                }}
-              />
-              <Legend />
-              <Bar dataKey="Groceries" stackId="a" fill="#38bdf8" />
-              <Bar dataKey="Food" stackId="a" fill="#818cf8" />
-              <Bar dataKey="Transport" stackId="a" fill="#34d399" />
-              <Bar dataKey="Bills" stackId="a" fill="#fbbf24" />
-              <Bar dataKey="Rent" stackId="a" fill="#f87171" />
-              <Bar dataKey="Other" stackId="a" fill="#94a3b8" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="card">
-          <h2>Average monthly by category</h2>
-          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
-            {averages.map((row) => (
-              <li key={row.category} style={{ marginBottom: '0.35rem' }}>
-                {row.category}: £{Number(row.averageAmount).toFixed(2)}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="card">
-          <h2>Top merchants</h2>
-          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
-            {merchants.map((m) => (
-              <li key={m.description} style={{ marginBottom: '0.35rem' }}>
-                {m.description} — £{Number(m.totalAmount).toFixed(2)} (
-                {m.transactionCount}x)
-              </li>
-            ))}
-          </ul>
-        </div>
+      <div className="grid grid--3">
+        <Panel
+          title="Expenditure by category (month)"
+          subtitle="Type: piechart — filtered by Month"
+        >
+          <CategoryPieChart data={dash.spendByMonth} />
+        </Panel>
+        <Panel
+          title="Total expenditure by category"
+          subtitle="Type: piechart — all time"
+        >
+          <CategoryPieChart data={dash.spendAllTime} />
+        </Panel>
+        <Panel title="Savings" subtitle="Type: gauge">
+          <GaugeDisplay value={dash.savings} />
+        </Panel>
       </div>
-    </>
+
+      <div className="grid grid--2">
+        <Panel
+          title="50/30/20 actual (month)"
+          subtitle="Type: piechart — Necessities / Wants / Savings"
+        >
+          <CategoryPieChart data={dash.budgetActual} />
+        </Panel>
+        <Panel
+          title="50/30/20 target from income"
+          subtitle="Type: bargauge — 50% / 30% / 20% of earnings"
+        >
+          <HorizontalBudgetBars data={dash.budgetTarget} color="#34d399" />
+        </Panel>
+      </div>
+
+      <div className="grid grid--2">
+        <Panel
+          title="Monthly expenditure by selected categories"
+          subtitle="Type: timeseries"
+        >
+          <TimeSeriesChart
+            series={categorySeriesFromMonthly(dash.selectedCategorySeries)}
+          />
+        </Panel>
+        <Panel title="Daily expenditures" subtitle="Type: timeseries">
+          <TimeSeriesChart series={dailySeries} />
+        </Panel>
+      </div>
+
+      <div className="grid grid--2">
+        <Panel title="Monthly salary income" subtitle="Type: barchart">
+          <StackedBarChart
+            rows={salaryBarData(dash.salary)}
+            categories={['Salary']}
+            stacked={false}
+          />
+        </Panel>
+        <Panel
+          title="Monthly earnings vs expenditures"
+          subtitle="Type: barchart"
+        >
+          <ComparisonBarChart data={dash.earningsVsExp} />
+        </Panel>
+      </div>
+
+      <Panel
+        title="Spending by category by month"
+        subtitle="Type: barchart (crosstab amounts)"
+        className="span-full"
+      >
+        <StackedBarChart
+          rows={pivotToRows(dash.pivotAmount)}
+          categories={dash.pivotAmount?.categories}
+        />
+      </Panel>
+
+      <Panel
+        title="Times spent per category per month"
+        subtitle="Type: barchart (crosstab counts)"
+        className="span-full"
+      >
+        <StackedBarChart
+          rows={pivotToRows(dash.pivotCount)}
+          categories={dash.pivotCount?.categories}
+        />
+      </Panel>
+
+      <div className="grid grid--2">
+        <Panel
+          title="Total spending per category per month"
+          subtitle="Type: table"
+        >
+          <DataTable
+            columns={[
+              { key: 'month', label: 'Month', format: (v) => formatMonth(v) },
+              { key: 'category', label: 'Category' },
+              currencyColumn('totalAmount', 'Amount'),
+              { key: 'count', label: 'Count' },
+            ]}
+            rows={dash.categoryTable}
+          />
+        </Panel>
+        <Panel
+          title="Total expenses vs earnings"
+          subtitle="Type: piechart"
+        >
+          <CategoryPieChart data={totalsPie} />
+          {dash.expensesVsEarnings && (
+            <div className="totals-row">
+              <span>Expenses: {formatCurrency(dash.expensesVsEarnings.totalExpenses)}</span>
+              <span>Earnings: {formatCurrency(dash.expensesVsEarnings.totalEarnings)}</span>
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      <Panel title="Top merchants" subtitle="From analytics API" className="span-full">
+        <DataTable
+          columns={[
+            { key: 'description', label: 'Description' },
+            currencyColumn('totalAmount', 'Total'),
+            { key: 'transactionCount', label: 'Times' },
+          ]}
+          rows={dash.merchants}
+        />
+      </Panel>
+
+      <footer className="footer">
+        Panel mapping documented in <code>docs/GRAFANA_PANELS.md</code> ·{' '}
+        <a href="http://localhost:5000/swagger" target="_blank" rel="noreferrer">
+          API Swagger
+        </a>
+      </footer>
+    </div>
   );
 }

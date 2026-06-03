@@ -1,3 +1,4 @@
+using ExpenseIntelligence.Api;
 using ExpenseIntelligence.Api.Services;
 using ExpenseIntelligence.Infrastructure;
 using ExpenseIntelligence.Infrastructure.Configuration;

@@ -38,5 +38,18 @@ GET {{baseUrl}}/api/analytics/average-monthly-by-category
 ### Analytics — top merchants
 GET {{baseUrl}}/api/analytics/top-merchants?limit=10
 
+### Dashboard — months & filters
+GET {{baseUrl}}/api/analytics/months
+GET {{baseUrl}}/api/analytics/expense-categories
+
+### Dashboard — Grafana-equivalent panels
+GET {{baseUrl}}/api/analytics/spend-by-category?month=2023-01
+GET {{baseUrl}}/api/analytics/budget-502030/actual?month=2023-01
+GET {{baseUrl}}/api/analytics/budget-502030/target?month=2023-01
+GET {{baseUrl}}/api/analytics/daily-expenditures
+GET {{baseUrl}}/api/analytics/earnings-vs-expenditures
+GET {{baseUrl}}/api/analytics/category-pivot?metric=amount
+GET {{baseUrl}}/api/analytics/monthly-by-categories?categories=Food,Groceries,Transport
+
 ### Upload CSV (multipart — use IDE or curl)
 # curl -F "file=@seed/transactions.demo.csv" "{{baseUrl}}/api/import/csv?autoCategorize=true"

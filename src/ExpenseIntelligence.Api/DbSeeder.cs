@@ -1,6 +1,7 @@
 using System.Globalization;
 using ExpenseIntelligence.Domain.Entities;
 using ExpenseIntelligence.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace ExpenseIntelligence.Api;
 
