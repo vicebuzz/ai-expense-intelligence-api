@@ -189,14 +189,3 @@ You should see `transactionCount` matching your existing data and `"schema": "le
   }
 }
 ```
-
-## Roadmap (portfolio extensions)
-
-- [ ] sklearn / TF-IDF model in `services/categorization` with trained artifact
-- [ ] Auth (JWT) and multi-user accounts
-- [ ] Azure deployment via Bicep + GitHub Actions
-- [ ] Integration tests for CSV import and analytics
-
-## License
-
-MIT — suitable for portfolio use. Demo data is fictional.
