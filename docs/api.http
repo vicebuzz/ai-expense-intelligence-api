@@ -1,0 +1,42 @@
+@baseUrl = http://localhost:5000
+
+### Health
+GET {{baseUrl}}/api/health
+
+### Categories
+GET {{baseUrl}}/api/categories
+
+### List transactions
+GET {{baseUrl}}/api/transactions?isExpense=true
+
+### Create transaction (auto-categorize if category omitted)
+POST {{baseUrl}}/api/transactions
+Content-Type: application/json
+
+{
+  "date": "2025-01-20",
+  "description": "FreshMart Supermarket",
+  "amount": 32.50,
+  "isExpense": true
+}
+
+### Categorize via API (proxies to Python service)
+POST {{baseUrl}}/api/categorization
+Content-Type: application/json
+
+{
+  "description": "RideShare Trip",
+  "isExpense": true
+}
+
+### Analytics — monthly spend by category
+GET {{baseUrl}}/api/analytics/spending-by-category
+
+### Analytics — average monthly per category
+GET {{baseUrl}}/api/analytics/average-monthly-by-category
+
+### Analytics — top merchants
+GET {{baseUrl}}/api/analytics/top-merchants?limit=10
+
+### Upload CSV (multipart — use IDE or curl)
+# curl -F "file=@seed/transactions.demo.csv" "{{baseUrl}}/api/import/csv?autoCategorize=true"

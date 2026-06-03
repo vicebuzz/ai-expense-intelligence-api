@@ -1,0 +1,93 @@
+# .NET
+bin/
+obj/
+out/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+*.rsuser
+project.lock.json
+project.fragment.lock.json
+artifacts/
+TestResults/
+[Dd]ebug/
+[Rr]elease/
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+*.DotSettings.user
+
+# Node / React dashboard
+node_modules/
+web/dashboard/dist/
+web/dashboard/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+.env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Secrets & local config (never commit real credentials)
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+appsettings.Local.json
+**/appsettings.Local.json
+**/secrets.json
+*.pfx
+*.pem
+
+# Personal / sensitive data (do not add real bank exports to this repo)
+**/personal/
+*.local.csv
+**/transactions[0-9]*.csv
+**/transactions_*.csv
+!seed/
+
+# Logs & temp
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+
+# Docker local overrides
+docker-compose.override.yml
+docker-compose.*.local.yml
+
+# Coverage & tooling
+coverage/
+*.coverage
+htmlcov/
+.sonarqube/

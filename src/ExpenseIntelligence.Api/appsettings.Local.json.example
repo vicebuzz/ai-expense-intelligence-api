@@ -1,0 +1,9 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=FundsManagementDB;Username=postgres;Password=YOUR_PASSWORD_HERE"
+  },
+  "Database": {
+    "UseLegacySchema": true,
+    "LegacyTableName": "accountbalancemanagement"
+  }
+}

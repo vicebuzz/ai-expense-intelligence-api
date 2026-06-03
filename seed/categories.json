@@ -1,0 +1,30 @@
+{
+  "categories": {
+    "outflow": [
+      "Groceries",
+      "Food",
+      "Bills",
+      "Transport",
+      "Entertainment",
+      "Education",
+      "Presents",
+      "Other",
+      "Shopping",
+      "Health",
+      "Travel",
+      "Savings",
+      "Sports",
+      "Rent",
+      "Subscriptions"
+    ],
+    "inflow": [
+      "Deposit",
+      "Wages",
+      "University",
+      "Savings Account",
+      "Other",
+      "Refund",
+      "Salary"
+    ]
+  }
+}
