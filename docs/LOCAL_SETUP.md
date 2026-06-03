@@ -127,17 +127,48 @@ Update CORS in `appsettings.json` if the dashboard origin changes:
 
 ---
 
-## 5. Optional: categorization service
+## 5. Categorization service (transformer ML)
 
-Only required for `POST /api/import/csv` and auto-categorise on new transactions.
+Required for CSV auto-categorise and “Auto (ML)” on manual entries.
+
+Uses **sentence-transformers/all-MiniLM-L6-v2** (transformer embeddings) + logistic regression.
 
 ```bash
 cd services/categorization
 python3 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+chmod +x run-dev.sh
+./run-dev.sh
 ```
+
+**If you see a NumPy / PyTorch error** (`NumPy 2.x` vs `compiled with NumPy 1.x`):
+
+```bash
+pip install "numpy>=1.26.4,<2.0.0" --force-reinstall
+pip install -r requirements.txt --force-reinstall
+```
+
+Or recreate the venv from scratch.
+
+**Do not** use plain `uvicorn --reload` without excluding `.venv` — WatchFiles will reload endlessly when packages install.
+
+First start downloads the embedding model (~80MB). Trains on `data/labeled_samples.json`, then improves when you import labelled CSVs.
+
+Retrain from your DB (optional):
+
+```bash
+curl -X POST http://localhost:5000/api/training/sync-ml
+```
+
+## 6. Dashboard: import CSV & add transactions
+
+Open http://localhost:5173
+
+- **Import bank CSV** — same template as grafana-expenses (`Transaction Date`, `Sort Code`, …, optional `Category`)
+- **Add transaction** — sets `month` as YYYY-MM on each row
+- Download template: http://localhost:5000/api/import/template
 
 ---
 

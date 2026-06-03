@@ -1,10 +1,17 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-async function fetchJson(path) {
-  const res = await fetch(`${API_BASE}${path}`);
+async function fetchJson(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, options);
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`API ${path} failed (${res.status}): ${text}`);
+    let message = text;
+    try {
+      const json = JSON.parse(text);
+      message = json.error ?? json.message ?? text;
+    } catch {
+      /* plain text */
+    }
+    throw new Error(message || `API ${path} failed (${res.status})`);
   }
   return res.json();
 }
@@ -33,4 +40,51 @@ export const api = {
     ),
   topMerchants: (limit = 15) =>
     fetchJson(`/api/analytics/top-merchants?limit=${limit}`),
+  categories: () => fetchJson('/api/categories'),
+  updateCategories: (body) =>
+    fetchJson('/api/categories', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        expense: body.expense,
+        income: body.income,
+      }),
+    }),
+  uploadCsv: async (file, autoCategorize = true) => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(
+      `${API_BASE}/api/import/csv?autoCategorize=${autoCategorize}`,
+      { method: 'POST', body: form }
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Upload failed (${res.status}): ${text}`);
+    }
+    return res.json();
+  },
+  createTransaction: async (body) => {
+    const res = await fetch(`${API_BASE}/api/transactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: body.date,
+        month: body.month,
+        description: body.description,
+        amount: body.amount,
+        isExpense: body.isExpense,
+        category: body.category,
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Create failed (${res.status}): ${text}`);
+    }
+    return res.json();
+  },
+  syncMlTraining: () =>
+    fetch(`${API_BASE}/api/training/sync-ml`, { method: 'POST' }).then((r) => {
+      if (!r.ok) throw new Error('ML sync failed');
+      return r.json();
+    }),
 };

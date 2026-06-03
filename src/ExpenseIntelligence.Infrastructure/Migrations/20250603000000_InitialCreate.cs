@@ -17,6 +17,7 @@ public partial class InitialCreate : Migration
                 Id = table.Column<int>(type: "integer", nullable: false)
                     .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                 Date = table.Column<DateOnly>(type: "date", nullable: false),
+                Month = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
                 Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                 Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                 IsExpense = table.Column<bool>(type: "boolean", nullable: false),

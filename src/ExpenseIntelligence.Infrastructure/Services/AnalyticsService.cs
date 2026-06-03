@@ -41,10 +41,12 @@ public class AnalyticsService
     public AnalyticsService(ExpenseDbContext db) => _db = db;
 
     private IQueryable<Domain.Entities.Transaction> Expenses =>
-        _db.Transactions.AsNoTracking().Where(t => t.IsExpense);
+        _db.Transactions.AsNoTracking()
+            .Where(t => t.IsExpense == true && t.Category != CategoryFilter.Excluded);
 
     private IQueryable<Domain.Entities.Transaction> Income =>
-        _db.Transactions.AsNoTracking().Where(t => !t.IsExpense);
+        _db.Transactions.AsNoTracking()
+            .Where(t => t.IsExpense == false && t.Category != CategoryFilter.Excluded);
 
     public async Task<IReadOnlyList<MonthLabel>> GetAvailableMonthsAsync(CancellationToken cancellationToken = default)
     {
@@ -72,6 +74,7 @@ public class AnalyticsService
 
         return categories
             .Select(c => c.Trim())
+            .Where(CategoryFilter.IsIncluded)
             .Distinct()
             .OrderBy(c => c)
             .ToList();

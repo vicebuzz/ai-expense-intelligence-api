@@ -7,16 +7,17 @@ namespace ExpenseIntelligence.Api.Controllers;
 [Route("api/[controller]")]
 public class CategorizationController : ControllerBase
 {
-    private readonly CategorizationClient _client;
+    private readonly TransactionCategorizationService _categorization;
 
-    public CategorizationController(CategorizationClient client) => _client = client;
+    public CategorizationController(TransactionCategorizationService categorization) =>
+        _categorization = categorization;
 
     [HttpPost]
     public async Task<IActionResult> Categorize(
         [FromBody] CategorizeRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await _client.CategorizeAsync(
+        var result = await _categorization.CategorizeAsync(
             request.Description,
             request.IsExpense,
             cancellationToken);

@@ -22,6 +22,6 @@ public static class Budget502030Classifier
             return "Wants";
         if (category.Equals("Savings", StringComparison.OrdinalIgnoreCase))
             return "Savings";
-        return "Other";
+        return "Wants";
     }
 }

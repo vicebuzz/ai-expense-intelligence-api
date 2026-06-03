@@ -7,9 +7,14 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { categoryColors, chartUi } from '../theme';
 import { formatCurrency } from '../utils/format';
 
-export default function HorizontalBudgetBars({ data, color = '#38bdf8' }) {
+export default function HorizontalBudgetBars({
+  data,
+  color = categoryColors.Savings,
+  compact = false,
+}) {
   if (!data?.length) return <p className="empty">No data</p>;
 
   const chartData = data.map((d) => ({
@@ -18,11 +23,27 @@ export default function HorizontalBudgetBars({ data, color = '#38bdf8' }) {
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={chartData} layout="vertical" margin={{ left: 24 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#2a3548" />
-        <XAxis type="number" stroke="#8b9cb3" tickFormatter={(v) => `£${v}`} />
-        <YAxis type="category" dataKey="group" width={100} stroke="#8b9cb3" />
+    <ResponsiveContainer width="100%" height={compact ? 150 : 220}>
+      <BarChart
+        data={chartData}
+        layout="vertical"
+        margin={{ left: compact ? 8 : 24, top: 4, bottom: 4, right: 8 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke={chartUi.grid} />
+        <XAxis
+          type="number"
+          stroke={chartUi.axis}
+          tick={{ fill: chartUi.tick }}
+          tickFormatter={(v) => `£${v}`}
+        />
+        <YAxis
+          type="category"
+          dataKey="group"
+          width={compact ? 88 : 100}
+          tick={{ fontSize: compact ? 11 : 12 }}
+          stroke={chartUi.axis}
+          tick={{ fill: chartUi.tick }}
+        />
         <Tooltip formatter={(v) => formatCurrency(v)} />
         <Bar dataKey="total" fill={color} radius={[0, 4, 4, 0]} />
       </BarChart>

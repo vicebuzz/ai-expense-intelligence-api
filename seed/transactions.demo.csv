@@ -1,28 +1,4 @@
-Transaction Date,Transaction Type,Transaction Description,Debit Amount,Credit Amount,Category
-15/01/2025,DEB,FreshMart Supermarket,42.50,,Groceries
-14/01/2025,DEB,RideShare Trip,12.30,,Transport
-14/01/2025,DEB,Corner Cafe,8.75,,Food
-13/01/2025,DEB,City Utilities,95.00,,Bills
-12/01/2025,DEB,StreamFlix Monthly,14.99,,Subscriptions
-11/01/2025,DEB,Metro Gym,35.00,,Sports
-10/01/2025,CRED,Employer Payroll,,2500.00,Salary
-09/01/2025,DEB,BookHub Online,29.99,,Education
-08/01/2025,DEB,FreshMart Supermarket,18.20,,Groceries
-07/01/2025,DEB,Express Bus Pass,22.00,,Transport
-06/01/2025,DEB,Pizza Palace,24.50,,Food
-05/01/2025,DEB,Pharmacy Plus,11.40,,Health
-04/01/2025,DEB,Gift Boutique,45.00,,Presents
-03/01/2025,DEB,Cinema World,16.00,,Entertainment
-02/01/2025,DEB,Landlord Rent,850.00,,Rent
-01/01/2025,DEB,Holiday Inn,120.00,,Travel
-20/12/2024,DEB,FreshMart Supermarket,55.10,,Groceries
-19/12/2024,DEB,RideShare Trip,9.80,,Transport
-18/12/2024,DEB,Corner Cafe,6.50,,Food
-17/12/2024,CRED,Employer Payroll,,2500.00,Salary
-16/12/2024,DEB,City Utilities,88.00,,Bills
-15/12/2024,DEB,General Store Misc,15.00,,Other
-14/12/2024,DEB,University Bookshop,32.00,,Education
-13/12/2024,DEB,Metro Gym,35.00,,Sports
-12/12/2024,DEB,StreamFlix Monthly,14.99,,Subscriptions
-11/12/2024,DEB,Savings Transfer,200.00,,Savings
-10/12/2024,DEB,Shopping Mall,67.30,,Shopping
+Transaction Date,Transaction Type,Sort Code,Account Number,Transaction Description,Debit Amount,Credit Amount,Balance,Category
+15/01/2025,DEB,00-00-00,00000000,FreshMart Supermarket,42.50,,1000.00,Groceries
+14/01/2025,DEB,00-00-00,00000000,RideShare Trip,12.30,,1042.50,Transport
+10/01/2025,CRED,00-00-00,00000000,Employer Payroll,,2500.00,3542.50,Salary

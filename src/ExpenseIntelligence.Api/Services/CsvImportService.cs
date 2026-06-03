@@ -9,32 +9,21 @@ public class CsvImportResult
 {
     public int Imported { get; set; }
     public int Skipped { get; set; }
+    public int CategorizedByMl { get; set; }
+    public int UsedCsvCategory { get; set; }
     public List<string> Errors { get; set; } = new();
 }
 
 public class CsvImportService
 {
-    private static readonly string[] ExpectedHeader =
-    {
-        "Transaction Date",
-        "Transaction Type",
-        "Transaction Description",
-        "Debit Amount",
-        "Credit Amount",
-        "Category"
-    };
-
     private readonly ExpenseDbContext _db;
-    private readonly CategoryCatalogService _categories;
-    private readonly CategorizationClient _categorization;
+    private readonly TransactionCategorizationService _categorization;
 
     public CsvImportService(
         ExpenseDbContext db,
-        CategoryCatalogService categories,
-        CategorizationClient categorization)
+        TransactionCategorizationService categorization)
     {
         _db = db;
-        _categories = categories;
         _categorization = categorization;
     }
 
@@ -55,6 +44,7 @@ public class CsvImportService
 
         var headers = ParseCsvLine(headerLine);
         var columnMap = BuildColumnMap(headers);
+        var pendingRows = new List<(List<string> Fields, Dictionary<string, int> Map)>();
 
         string? line;
         while ((line = await reader.ReadLineAsync()) is not null)
@@ -64,17 +54,7 @@ public class CsvImportService
 
             try
             {
-                var fields = ParseCsvLine(line);
-                var transaction = await MapRowAsync(fields, columnMap, autoCategorizeMissing, cancellationToken);
-
-                if (transaction is null)
-                {
-                    result.Skipped++;
-                    continue;
-                }
-
-                _db.Transactions.Add(transaction);
-                result.Imported++;
+                pendingRows.Add((ParseCsvLine(line), columnMap));
             }
             catch (Exception ex)
             {
@@ -83,15 +63,116 @@ public class CsvImportService
             }
         }
 
+        var needsMl = new List<(int Index, string Description, bool IsExpense)>();
+        var parsed = new List<ParsedRow?>(pendingRows.Count);
+
+        for (var i = 0; i < pendingRows.Count; i++)
+        {
+            var (fields, map) = pendingRows[i];
+            try
+            {
+                var row = ParseFields(fields, map);
+                if (row is null)
+                {
+                    parsed.Add(null);
+                    result.Skipped++;
+                    continue;
+                }
+
+                parsed.Add(row);
+
+                if (autoCategorizeMissing && string.IsNullOrWhiteSpace(row.CsvCategory))
+                    needsMl.Add((i, row.Description, row.IsExpense));
+            }
+            catch (Exception ex)
+            {
+                parsed.Add(null);
+                result.Skipped++;
+                result.Errors.Add(ex.Message);
+            }
+        }
+
+        var mlResults = needsMl.Count > 0
+            ? await _categorization.CategorizeBatchAsync(
+                needsMl.Select(x => (x.Description, x.IsExpense)).ToList(),
+                cancellationToken)
+            : new List<CategorizationSuggestion>();
+
+        for (var m = 0; m < needsMl.Count; m++)
+        {
+            var (index, _, _) = needsMl[m];
+            var suggestion = mlResults[m];
+            var row = parsed[index]!;
+            row.Category = suggestion.Category;
+            row.CategorizationSource = suggestion.Source;
+            result.CategorizedByMl++;
+        }
+
+        foreach (var row in parsed)
+        {
+            if (row is null)
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(row.CsvCategory))
+            {
+                row.Category = row.CsvCategory.Trim();
+                row.CategorizationSource = "csv";
+                result.UsedCsvCategory++;
+            }
+
+            row.Category = NormalizeCategory(row.Category, row.IsExpense);
+
+            if (!CategoryFilter.IsIncluded(row.Category))
+            {
+                result.Skipped++;
+                result.Errors.Add($"Skipped (category '{CategoryFilter.Excluded}'): {row.Description}");
+                continue;
+            }
+
+            _db.Transactions.Add(new Transaction
+            {
+                Date = row.Date,
+                Month = row.Month,
+                Description = row.Description,
+                Amount = row.Amount,
+                IsExpense = row.IsExpense,
+                Category = row.Category,
+                CategorizationSource = row.CategorizationSource
+            });
+            result.Imported++;
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
+
+        if (result.Imported > 0)
+            await _categorization.RetrainFromDatabaseAsync(cancellationToken);
+
         return result;
     }
 
-    private async Task<Transaction?> MapRowAsync(
+    private static string NormalizeCategory(string category, bool isExpense)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+            return CategoryFilter.Excluded;
+
+        return category.Trim();
+    }
+
+    private sealed class ParsedRow
+    {
+        public DateOnly Date { get; init; }
+        public string Month { get; init; } = "";
+        public string Description { get; init; } = "";
+        public decimal Amount { get; init; }
+        public bool IsExpense { get; init; }
+        public string CsvCategory { get; init; } = "";
+        public string Category { get; set; } = "";
+        public string CategorizationSource { get; set; } = "import";
+    }
+
+    private static ParsedRow? ParseFields(
         IReadOnlyList<string> fields,
-        Dictionary<string, int> columnMap,
-        bool autoCategorizeMissing,
-        CancellationToken cancellationToken)
+        Dictionary<string, int> columnMap)
     {
         var dateRaw = GetField(fields, columnMap, "transaction date");
         var description = GetField(fields, columnMap, "transaction description");
@@ -111,28 +192,14 @@ public class CsvImportService
         if (!decimal.TryParse(amountRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out var amount))
             throw new FormatException($"Invalid amount: {amountRaw}");
 
-        var categorizationSource = "import";
-
-        if (string.IsNullOrWhiteSpace(category) && autoCategorizeMissing)
-        {
-            var suggestion = await _categorization.CategorizeAsync(description, isExpense, cancellationToken);
-            category = suggestion.Category;
-            categorizationSource = suggestion.Source;
-        }
-
-        category = string.IsNullOrWhiteSpace(category) ? "Other" : category.Trim();
-
-        if (!_categories.IsValidCategory(category, isExpense))
-            category = isExpense ? "Other" : "Other";
-
-        return new Transaction
+        return new ParsedRow
         {
             Date = date,
+            Month = Transaction.MonthFromDate(date),
             Description = description.Trim(),
             Amount = amount,
             IsExpense = isExpense,
-            Category = category,
-            CategorizationSource = categorizationSource
+            CsvCategory = category
         };
     }
 
@@ -170,7 +237,7 @@ public class CsvImportService
         return fields[index].Trim();
     }
 
-    private static List<string> ParseCsvLine(string line)
+    public static List<string> ParseCsvLine(string line)
     {
         var fields = new List<string>();
         var current = "";

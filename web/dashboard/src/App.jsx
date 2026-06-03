@@ -7,7 +7,12 @@ import HorizontalBudgetBars from './components/HorizontalBudgetBars';
 import Panel from './components/Panel';
 import StackedBarChart from './components/StackedBarChart';
 import TimeSeriesChart from './components/TimeSeriesChart';
+import AddTransactionPanel from './components/AddTransactionPanel';
+import ImportPanel from './components/ImportPanel';
+import EditCategoriesModal from './components/EditCategoriesModal';
+import Modal from './components/Modal';
 import { useDashboard } from './hooks/useDashboard';
+import { colorForCategory } from './theme';
 import { formatCurrency, formatMonth } from './utils/format';
 
 function expensesVsEarningsPieData(totals) {
@@ -46,6 +51,9 @@ function categorySeriesFromMonthly(rows) {
 export default function App() {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   const dash = useDashboard(selectedMonth, selectedCategories);
 
@@ -100,13 +108,63 @@ export default function App() {
             via ASP.NET Core
           </p> */}
         </div>
-        {dash.health && (
-          <div className="health-badge">
-            <span className="dot" />
-            {dash.health.database} · {dash.health.transactionCount} rows
-          </div>
-        )}
+        <div className="header-actions">
+          {dash.health && (
+            <div className="health-badge">
+              <span className="dot" />
+              {dash.health.database} · {dash.health.transactionCount} rows
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn-header"
+            onClick={() => setImportOpen(true)}
+          >
+            Import CSV
+          </button>
+          <button
+            type="button"
+            className="btn-header btn-header--primary"
+            onClick={() => setAddOpen(true)}
+          >
+            Add transaction
+          </button>
+        </div>
       </header>
+
+      <Modal
+        title="Import bank CSV"
+        subtitle="UK export format — same columns as your grafana-expenses csv/ files"
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+      >
+        <ImportPanel onImported={dash.reload} />
+      </Modal>
+
+      <EditCategoriesModal
+        open={categoriesOpen}
+        catalog={dash.catalog}
+        onClose={() => setCategoriesOpen(false)}
+        onSaved={async (result) => {
+          await dash.reload();
+          const next = result?.expense ?? dash.catalog?.expense ?? [];
+          setSelectedCategories((prev) =>
+            prev.filter((c) => next.includes(c))
+          );
+        }}
+      />
+
+      <Modal
+        title="Add transaction"
+        subtitle="Single entry — category optional (ML will suggest)"
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+      >
+        <AddTransactionPanel
+          categories={dash.catalog}
+          onAdded={dash.reload}
+        />
+      </Modal>
 
       {dash.error && <div className="error">{dash.error}</div>}
 
@@ -126,13 +184,23 @@ export default function App() {
           </select>
         </label>
         <div className="category-filter">
-          <span className="filter-label">Categories (time series)</span>
+          <div className="category-filter-head">
+            <span className="filter-label">Categories (time series)</span>
+            <button
+              type="button"
+              className="btn-edit-categories"
+              onClick={() => setCategoriesOpen(true)}
+            >
+              Edit categories
+            </button>
+          </div>
           <div className="chips">
             {dash.categories.map((cat) => (
               <button
                 key={cat}
                 type="button"
                 className={`chip ${selectedCategories.includes(cat) ? 'chip--on' : ''}`}
+                style={{ '--chip-color': colorForCategory(cat) }}
                 onClick={() => toggleCategory(cat)}
               >
                 {cat}
@@ -143,36 +211,38 @@ export default function App() {
         {dash.loading && <span className="loading-pill">Loading…</span>}
       </div>
 
-      <div className="grid grid--3">
+      <div className="grid grid--2">
         <Panel
+          className="panel--pie"
           title="Expenditure by category (month)"
           subtitle="Type: piechart — filtered by Month"
         >
-          <CategoryPieChart data={dash.spendByMonth} />
+          <CategoryPieChart data={dash.spendByMonth} size="large" />
         </Panel>
         <Panel
+          className="panel--pie"
           title="Total expenditure by category"
           subtitle="Type: piechart — all time"
         >
-          <CategoryPieChart data={dash.spendAllTime} />
-        </Panel>
-        <Panel title="Savings" subtitle="Type: gauge">
-          <GaugeDisplay value={dash.savings} />
+          <CategoryPieChart data={dash.spendAllTime} size="large" />
         </Panel>
       </div>
 
-      <div className="grid grid--2">
+      <div className="grid grid--budget">
         <Panel
           title="50/30/20 actual (month)"
           subtitle="Type: piechart — Necessities / Wants / Savings"
         >
-          <CategoryPieChart data={dash.budgetActual} />
+          <CategoryPieChart data={dash.budgetActual} size="compact" />
         </Panel>
         <Panel
           title="50/30/20 target from income"
           subtitle="Type: bargauge — 50% / 30% / 20% of earnings"
         >
-          <HorizontalBudgetBars data={dash.budgetTarget} color="#34d399" />
+          <HorizontalBudgetBars data={dash.budgetTarget} compact />
+        </Panel>
+        <Panel className="panel--gauge" title="Savings" subtitle="Type: gauge">
+          <GaugeDisplay value={dash.savings} compact />
         </Panel>
       </div>
 
@@ -225,6 +295,7 @@ export default function App() {
         <StackedBarChart
           rows={pivotToRows(dash.pivotCount)}
           categories={dash.pivotCount?.categories}
+          valueFormat="count"
         />
       </Panel>
 

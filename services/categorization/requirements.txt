@@ -1,3 +1,14 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.4
+
+# Pin NumPy 1.x — PyTorch/sentence-transformers wheels often break on NumPy 2.x
+numpy>=1.26.4,<2.0.0
+torch>=2.2.2,<3.0.0
+sentence-transformers==3.3.1
+scikit-learn==1.5.2
+joblib==1.4.2
+
+# Sympy/mpmath chain used by torch — avoid broken partial installs
+mpmath>=1.3.0,<2.0.0
+sympy>=1.12.0,<1.14.0

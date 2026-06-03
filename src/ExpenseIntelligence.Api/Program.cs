@@ -3,6 +3,7 @@ using ExpenseIntelligence.Api.Services;
 using ExpenseIntelligence.Infrastructure;
 using ExpenseIntelligence.Infrastructure.Configuration;
 using ExpenseIntelligence.Infrastructure.Persistence;
+using ExpenseIntelligence.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -25,6 +26,7 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<CsvImportService>();
+builder.Services.AddScoped<TransactionCategorizationService>();
 
 var categorizationBaseUrl = builder.Configuration["CategorizationService:BaseUrl"]
     ?? "http://localhost:8000";
@@ -60,6 +62,8 @@ using (var scope = app.Services.CreateScope())
             "(appsettings.Local.json or ConnectionStrings__DefaultConnection).");
     }
 
+    var catalog = scope.ServiceProvider.GetRequiredService<CategoryCatalogService>();
+
     if (dbOptions.UseLegacySchema)
     {
         var count = await db.Transactions.CountAsync();
@@ -74,6 +78,8 @@ using (var scope = app.Services.CreateScope())
         await DbSeeder.SeedIfEmptyAsync(db);
         logger.LogInformation("Portfolio schema migrated and seeded if empty.");
     }
+
+    await CategoryCatalogInitializer.InitializeAsync(db, catalog, logger);
 }
 
 if (app.Environment.IsDevelopment())

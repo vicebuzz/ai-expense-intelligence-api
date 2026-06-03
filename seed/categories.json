@@ -10,10 +10,11 @@
       "Presents",
       "Other",
       "Shopping",
-      "Health",
-      "Travel",
+      "Health&Hygiene",
+      "Travel&Tourism",
       "Savings",
-      "Sports",
+      "Sports&Activities",
+      "Tobacco",
       "Rent",
       "Subscriptions"
     ],
@@ -23,6 +24,7 @@
       "University",
       "Savings Account",
       "Other",
+      "Help Funds",
       "Refund",
       "Salary"
     ]

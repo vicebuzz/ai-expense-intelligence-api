@@ -43,7 +43,7 @@ public static class DependencyInjection
             });
         });
 
-        services.AddSingleton<CategoryCatalogService>();
+        services.AddScoped<CategoryCatalogService>();
         services.AddScoped<AnalyticsService>();
 
         return services;

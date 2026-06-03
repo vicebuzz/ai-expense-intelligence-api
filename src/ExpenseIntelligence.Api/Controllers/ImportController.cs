@@ -12,7 +12,8 @@ public class ImportController : ControllerBase
     public ImportController(CsvImportService importService) => _importService = importService;
 
     /// <summary>
-    /// Upload a UK-style bank CSV (see seed/transactions.demo.csv for format).
+    /// UK bank export CSV (same columns as grafana-expenses csv/).
+    /// Category column optional — empty cells are classified via transformer ML.
     /// </summary>
     [HttpPost("csv")]
     [RequestSizeLimit(10_000_000)]
@@ -27,5 +28,17 @@ public class ImportController : ControllerBase
         await using var stream = file.OpenReadStream();
         var result = await _importService.ImportAsync(stream, autoCategorize, cancellationToken);
         return Ok(result);
+    }
+
+    [HttpGet("template")]
+    public IActionResult DownloadTemplate()
+    {
+        const string header =
+            "Transaction Date,Transaction Type,Sort Code,Account Number,Transaction Description,Debit Amount,Credit Amount,Balance,Category";
+
+        return File(
+            System.Text.Encoding.UTF8.GetBytes(header + "\n"),
+            "text/csv",
+            "bank-export-template.csv");
     }
 }

@@ -3,6 +3,7 @@ namespace ExpenseIntelligence.Api.Models;
 public record TransactionResponse(
     int Id,
     DateOnly Date,
+    string Month,
     string Description,
     decimal Amount,
     bool IsExpense,
@@ -14,4 +15,5 @@ public record CreateTransactionRequest(
     string Description,
     decimal Amount,
     bool IsExpense,
-    string? Category);
+    string? Category,
+    string? Month);

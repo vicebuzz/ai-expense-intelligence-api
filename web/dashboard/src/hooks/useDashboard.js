@@ -23,16 +23,19 @@ export function useDashboard(selectedMonth, selectedCategories) {
   const [selectedCategorySeries, setSelectedCategorySeries] = useState([]);
   const [merchants, setMerchants] = useState([]);
 
+  const [catalog, setCatalog] = useState({ expense: [], income: [] });
+
   const loadMeta = useCallback(async () => {
-    const [h, m, c] = await Promise.all([
+    const [h, m, cat] = await Promise.all([
       api.health(),
       api.months(),
-      api.expenseCategories(),
+      api.categories(),
     ]);
     setHealth(h);
     setMonths(m);
-    setCategories(c);
-    return { months: m, categories: c };
+    setCatalog(cat);
+    setCategories(cat.expense ?? []);
+    return { months: m, categories: cat.expense ?? [], catalog: cat };
   }, []);
 
   const loadDashboard = useCallback(async () => {
@@ -125,6 +128,10 @@ export function useDashboard(selectedMonth, selectedCategories) {
     expensesVsEarnings,
     selectedCategorySeries,
     merchants,
-    reload: loadDashboard,
+    catalog,
+    reload: async () => {
+      await loadMeta();
+      await loadDashboard();
+    },
   };
 }

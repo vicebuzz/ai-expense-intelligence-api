@@ -8,9 +8,23 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { CHART_COLORS, formatCurrency, formatMonth } from '../utils/format';
+import { chartUi, colorForCategory } from '../theme';
+import {
+  formatCount,
+  formatCurrency,
+  formatMonth,
+  formatTimes,
+} from '../utils/format';
 
-export default function StackedBarChart({ rows, categories, stacked = true }) {
+export default function StackedBarChart({
+  rows,
+  categories,
+  stacked = true,
+  valueFormat = 'currency',
+}) {
+  const isCount = valueFormat === 'count';
+  const formatValue = isCount ? formatTimes : formatCurrency;
+  const formatAxis = isCount ? formatCount : (v) => `£${v}`;
   if (!rows?.length) return <p className="empty">No data</p>;
 
   const chartData = rows.map((r) => ({
@@ -26,17 +40,29 @@ export default function StackedBarChart({ rows, categories, stacked = true }) {
   return (
     <ResponsiveContainer width="100%" height={320}>
       <BarChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#2a3548" />
-        <XAxis dataKey="month" stroke="#8b9cb3" angle={-20} textAnchor="end" height={60} />
-        <YAxis stroke="#8b9cb3" tickFormatter={(v) => `£${v}`} />
-        <Tooltip formatter={(v) => formatCurrency(v)} />
+        <CartesianGrid strokeDasharray="3 3" stroke={chartUi.grid} />
+        <XAxis
+          dataKey="month"
+          stroke={chartUi.axis}
+          tick={{ fill: chartUi.tick }}
+          angle={-20}
+          textAnchor="end"
+          height={60}
+        />
+        <YAxis
+          stroke={chartUi.axis}
+          tick={{ fill: chartUi.tick }}
+          tickFormatter={formatAxis}
+          allowDecimals={!isCount}
+        />
+        <Tooltip formatter={(v) => formatValue(v)} />
         <Legend />
         {keys.slice(0, 12).map((key, i) => (
           <Bar
             key={key}
             dataKey={key}
             stackId={stacked ? 'a' : undefined}
-            fill={CHART_COLORS[i % CHART_COLORS.length]}
+            fill={colorForCategory(key, i)}
           />
         ))}
       </BarChart>

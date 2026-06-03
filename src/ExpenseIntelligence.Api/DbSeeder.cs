@@ -41,6 +41,7 @@ public static class DbSeeder
             db.Transactions.Add(new Transaction
             {
                 Date = date,
+                Month = Transaction.MonthFromDate(date),
                 Description = description,
                 Amount = amount,
                 IsExpense = isExpense,

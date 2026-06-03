@@ -1,9 +1,9 @@
 import { formatCurrency } from '../utils/format';
 
-export default function GaugeDisplay({ value, label = 'Savings' }) {
+export default function GaugeDisplay({ value, label = 'Savings', compact = false }) {
   if (value == null) {
     return (
-      <div className="gauge gauge--empty">
+      <div className={`gauge gauge--empty ${compact ? 'gauge--compact' : ''}`}>
         <p className="empty">No savings table configured</p>
         <small>Requires legacy <code>savings</code> table in PostgreSQL</small>
       </div>
@@ -11,7 +11,7 @@ export default function GaugeDisplay({ value, label = 'Savings' }) {
   }
 
   return (
-    <div className="gauge">
+    <div className={`gauge ${compact ? 'gauge--compact' : ''}`}>
       <div className="gauge-ring">
         <span className="gauge-value">{formatCurrency(value)}</span>
       </div>

@@ -14,6 +14,22 @@ partial class ExpenseDbContextModelSnapshot : ModelSnapshot
     {
         modelBuilder.HasAnnotation("ProductVersion", "7.0.20");
 
+        modelBuilder.Entity("ExpenseIntelligence.Domain.Entities.CategoryDefinition", b =>
+        {
+            b.Property<int>("Id")
+                .ValueGeneratedOnAdd()
+                .HasColumnType("integer");
+
+            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+            b.Property<bool>("IsExpense").HasColumnType("boolean");
+            b.Property<string>("Name").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<int>("SortOrder").HasColumnType("integer");
+            b.HasKey("Id");
+            b.HasIndex("Name", "IsExpense").IsUnique();
+            b.ToTable("category_definitions", (string)null);
+        });
+
         modelBuilder.Entity("ExpenseIntelligence.Domain.Entities.Transaction", b =>
         {
             b.Property<int>("Id")
@@ -27,6 +43,7 @@ partial class ExpenseDbContextModelSnapshot : ModelSnapshot
             b.Property<string>("CategorizationSource").HasMaxLength(50).HasColumnType("character varying(50)");
             b.Property<DateTime?>("CreatedAt").HasColumnType("timestamp with time zone");
             b.Property<DateOnly>("Date").HasColumnType("date");
+            b.Property<string>("Month").IsRequired().HasMaxLength(7).HasColumnType("character varying(7)");
             b.Property<string>("Description").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
             b.Property<bool>("IsExpense").HasColumnType("boolean");
             b.HasKey("Id");

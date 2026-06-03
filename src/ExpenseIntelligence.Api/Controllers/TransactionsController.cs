@@ -14,12 +14,12 @@ public class TransactionsController : ControllerBase
 {
     private readonly ExpenseDbContext _db;
     private readonly CategoryCatalogService _categories;
-    private readonly CategorizationClient _categorization;
+    private readonly TransactionCategorizationService _categorization;
 
     public TransactionsController(
         ExpenseDbContext db,
         CategoryCatalogService categories,
-        CategorizationClient categorization)
+        TransactionCategorizationService categorization)
     {
         _db = db;
         _categories = categories;
@@ -30,6 +30,7 @@ public class TransactionsController : ControllerBase
     public async Task<ActionResult<IEnumerable<TransactionResponse>>> List(
         [FromQuery] DateOnly? from,
         [FromQuery] DateOnly? to,
+        [FromQuery] string? month,
         [FromQuery] string? category,
         [FromQuery] bool? isExpense,
         CancellationToken cancellationToken)
@@ -40,6 +41,8 @@ public class TransactionsController : ControllerBase
             query = query.Where(t => t.Date >= from.Value);
         if (to.HasValue)
             query = query.Where(t => t.Date <= to.Value);
+        if (!string.IsNullOrWhiteSpace(month))
+            query = query.Where(t => t.Month == month);
         if (!string.IsNullOrWhiteSpace(category))
             query = query.Where(t => t.Category == category);
         if (isExpense.HasValue)
@@ -81,12 +84,21 @@ public class TransactionsController : ControllerBase
             source = suggestion.Source;
         }
 
-        if (!_categories.IsValidCategory(category, request.IsExpense))
-            return BadRequest($"Unknown category: {category}");
+        category = category.Trim();
+        if (string.IsNullOrWhiteSpace(category))
+            return BadRequest("Category is required (auto-categorisation could not assign a specific label).");
+
+        if (!CategoryFilter.IsIncluded(category))
+            return BadRequest($"Category '{CategoryFilter.Excluded}' is not allowed — choose a specific category.");
+
+        var month = string.IsNullOrWhiteSpace(request.Month)
+            ? Transaction.MonthFromDate(request.Date)
+            : request.Month.Trim();
 
         var transaction = new Transaction
         {
             Date = request.Date,
+            Month = month,
             Description = request.Description.Trim(),
             Amount = request.Amount,
             IsExpense = request.IsExpense,
@@ -113,5 +125,13 @@ public class TransactionsController : ControllerBase
     }
 
     private static TransactionResponse ToResponse(Transaction t) =>
-        new(t.Id, t.Date, t.Description, t.Amount, t.IsExpense, t.Category, t.CategorizationSource);
+        new(
+            t.Id,
+            t.Date,
+            string.IsNullOrEmpty(t.Month) ? Transaction.MonthFromDate(t.Date) : t.Month,
+            t.Description,
+            t.Amount,
+            t.IsExpense ?? false,
+            t.Category,
+            t.CategorizationSource);
 }
